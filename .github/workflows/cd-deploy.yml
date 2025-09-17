@@ -24,13 +24,13 @@ jobs:
       - name: Update backend image
         run: |
           kubectl set image deploy/expensy-backend \
-            expensy-backend=lordvetonn/expensy-backend:${{ github.sha }} \
+            backend=lordvetonn/expensy-backend:${{ github.sha }} \
             -n ${{ secrets.K8S_NAMESPACE }}
 
       - name: Update frontend image
         run: |
           kubectl set image deploy/expensy-frontend \
-            expensy-frontend=lordvetonn/expensy-frontend:${{ github.sha }} \
+            frontend=lordvetonn/expensy-frontend:${{ github.sha }} \
             -n ${{ secrets.K8S_NAMESPACE }}
 
       - name: Wait for rollout
