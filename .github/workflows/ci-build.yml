@@ -1,0 +1,51 @@
+name: CI - Build Frontend & Backend
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: expensy_backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: |
+            expensy_backend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: expensy_frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: |
+            expensy_frontend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
