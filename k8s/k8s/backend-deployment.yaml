@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: expensy-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: expensy-backend
+  template:
+    metadata:
+      labels:
+        app: expensy-backend
+    spec:
+      containers:
+      - name: backend
+        image: lordvetonn/expensy-backend:v1
+        ports:
+        - containerPort: 3001
+        env:
+        - name: DATABASE_URI
+          value: "mongodb://mongo:27017/expensy"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PASSWORD
+          value: "someredispassword"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: expensy-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: expensy-backend
+  ports:
+  - port: 3001
+    targetPort: 3001
