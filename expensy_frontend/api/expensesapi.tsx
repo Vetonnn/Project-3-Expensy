@@ -12,13 +12,14 @@ import apiClient from "./apiclient"
 
 const fetchExpensesAPI = async () => {
    
-        const response = await apiClient.get("/api/expenses")
+         const response = await apiclient.get("/expenses")
+
        return response
    
     }
 
 const addExpensesAPI = async (name: string, amount: number, category: string) => {
-    const response = await apiClient.post("/api/expenses", {
+    const response = await apiclient.post("/expenses", {
         name,
         amount,
         category
