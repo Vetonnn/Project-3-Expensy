@@ -1,157 +1,106 @@
-<!-- Final Project: End-to-End DevOps Deployment -->
+Expensy – End-to-End DevOps Deployment
 
-## Lesson Overview :pencil2:
+Expensy is a simple expense-tracking application delivered as a full DevOps project. The solution includes a Next.js frontend and a Node/Express backend, packaged as containers, built and deployed through GitHub Actions, run on Azure Kubernetes Service (AKS), and observed with Prometheus/Grafana and Azure Monitor.
 
-In this project, we will focus on the hands-on implementation of the learnings throughout this program, where you will gain practical insights while setting up the entire DevOps cycle and deploying applications using acquired best practices. 
+What this project demonstrates
 
-<br>
+A clear separation between a browser-facing Next.js frontend and an Express API backend.
 
-## Learning Objectives :notebook:
+Repeatable container builds and automated delivery through a single CI/CD pipeline.
 
-By the end of this project, you will: 
+Production-style Kubernetes manifests for the app, data services, and networking on AKS.
 
-1. Apply DevOps practices to a real-world project in a production environment.
-2. Build an effective CI/CD pipeline to automate delivery.
-3. Automate provisioning, configuration and infrastructure management using Terraform and Ansible. 
-4. Deploy and manage containerized applications using Kubernetes. 
-5. Integrate applications with Managed Kubernetes Service and other cloud services
-6. Set up monitoring and create dashboards using Grafana and Prometheus
-7. Resolve issues arising during the entire cycle using best practices
+Observability via in-cluster Prometheus/Grafana dashboards and centralized logging/metrics in Azure.
 
-<br>
+Practical security choices: secrets kept out of source control, private services inside the cluster, and least-privilege access for automation.
 
-## Project Highlights :key:
+High-level architecture
 
-### Product Management:
+The frontend is exposed publicly through a Kubernetes LoadBalancer service. It communicates with the backend via an internal ClusterIP service, which in turn talks to MongoDB and Redis running inside the cluster. Images are published to Docker Hub (lordvetonn/expensy-frontend:v1, lordvetonn/expensy-backend:v1). The AKS cluster is tony-expensy in resource group tony-expensy-aks. At the time of writing, the frontend is reachable at http://20.251.238.124/home.
 
-1. This capstone project is a team project, where you will assume roles and work as a scrum team. 
-2. The following indicators will be helpful for the successful completion of your project:         
-    - The duration of one Sprint Cycle is 5 days. So, you will have three Sprint Cycles for this project.
-    - Start with identifying a Scrum Master within your team.
-    - Make sure to follow all scrum events like Sprint, Sprint Planning, Daily Scrum, Sprint Review, Sprint Retrospection.
-    - Plan a Sprint Review at the end of every Sprint Cycle.
-3. Your instructor will be the product owner. If you have any questions regarding the requirements or deliverables, you can address them to the Product Owner.
-4. **Suggestion:** Start with a Team Agreement 
-    - Decide your working hours
-    - Decide your definition of done
-    - Decide your team’s way of work
-    - Identify the time when you will have your scrum events like daily scrum, sprint review, and other scrum events 
-5. We will make use of Azure Boards (or JIRA boards or any other similar tool) to manage work
-6. Please ensure that you have your Daily Scrum and evening sync-up (daily retrospective) every day.
-7. The final sprint review and respective presentations will be held on the last day of the project (during the second half).
+Key runtime conventions:
 
-<br>
+Frontend calls the API through NEXT_PUBLIC_API_URL, set to the internal service URL http://expensy-backend:3001/api.
 
-### Pre-requisites
+Backend receives DATABASE_URI, REDIS_HOST, and REDIS_PASSWORD as environment variables. Real secrets are provided by the pipeline/runtime, not committed.
 
-1. You can use any cloud of your choice (AWS, Azure or Hybrid). Make sure to have an account with free-trial or an account with enough credit.
-2. Create a free account on the DockerHub registry. This account will be used to host docker images used in the project
+Repository layout
 
-### Web Application Introduction
+The repository is organized to reflect responsibilities and to keep operational assets versioned:
 
-This sample application is an Expense Tracker with four microservices, a backend built in node, frontend built with Next.js (Node based framework), along with a MongoDB database and Redis caching DB.
+expensy_frontend/ – Next.js application (client UI).
 
-[Clone this repository and share it with the team](https://github.com/saurabhd2106/devops-final-project.git)
+expensy_backend/ – Node/Express API server.
 
-Your task is to build a solution for this application that is scalable and can support zero to thousands of users. 
+k8s/k8s/ – Kubernetes manifests for frontend, backend, and data services
+(e.g., frontend-deployment.yaml, backend-deployment.yaml, db.yaml).
 
-### Make sure to use the following:
+.github/workflows/ci-cd.yml – GitHub Actions workflow for build, image publish, and deploy.
 
-#### 1. Infrastructure as Code (IaC):
+monitoring/ – Place for exported Grafana dashboards and (optional) Prometheus rule/config files.
 
-- Use Terraform, AWS CloudFormation, or another IaC tool to define your infrastructure.
+This structure allows the same repo to drive both development and platform automation end-to-end.
 
-#### 2. Your infrastructure should include:
+CI/CD pipeline (GitHub Actions)
 
-- Compute resources (e.g., EC2 instances, Kubernetes clusters).
-- Networking resources (e.g., VPC, subnets, security groups).
-- Storage resources (e.g., S3 buckets, RDS instances).
-- Continuous Integration/Continuous Deployment (CI/CD):
+A single workflow orchestrates the delivery:
 
-#### 3. Implement a CI/CD pipeline using tools such as Jenkins, GitLab CI, or GitHub Actions.
+Build – Installs dependencies and builds both the frontend and backend.
 
-The pipeline should:
-- Automatically build and test your application.
-- Deploy the application to a staging environment.
-- Deploy to production upon approval.
+(Optional) Test – Placeholder for unit/integration tests if/when added.
 
-#### 4. Containerization and Orchestration:
-- Containerize your application using Docker.
-- Use Kubernetes or Docker Swarm for orchestration to ensure your application can scale horizontally.
+Containerize & Publish – Builds Docker images and pushes them to Docker Hub.
 
-#### 5. Monitoring and Logging:
+Deploy to AKS – Authenticates to Azure/AKS and applies the Kubernetes manifests.
 
-- Implement monitoring using tools like Prometheus, Grafana, or AWS CloudWatch.
+The pipeline relies on GitHub Secrets for credentials (Docker Hub, Azure) and any application secrets you choose to inject at deploy time. Nothing sensitive is stored in Git history.
 
-#### 6. Autoscaling:
+Kubernetes on AKS
 
-- Configure autoscaling for your compute resources (e.g., AWS Auto Scaling groups, Kubernetes Horizontal Pod Autoscaler) to handle varying loads.
+The application runs in the default namespace. The frontend is published via a LoadBalancer service, while the backend, MongoDB, and Redis are ClusterIP services restricted to internal traffic. Readiness and liveness probes on the backend ensure Kubernetes only routes traffic to healthy pods and restarts them if the process stops responding.
 
-#### 7. Security and Compliance:
+This split—public frontend, private backend/data—keeps the surface area small and mirrors real-world production patterns.
 
-- Implement best security practices, including network security (firewalls, security groups), data encryption, and IAM policies.
-- Ensure compliance with relevant standards (e.g., GDPR, HIPAA) as applicable.
+Monitoring and logging
 
-### Deliverables:
+Two complementary approaches are in place:
 
-#### 1. Infrastructure Code:
+Prometheus & Grafana in-cluster: Installed via the kube-prometheus-stack chart to collect Kubernetes metrics automatically and visualize them in Grafana. A custom dashboard (“Expensy – Cluster Health”) shows pod-level CPU, memory, and CPU rate time series for the frontend, backend, Mongo, and Redis. Exported dashboard JSON should be committed under monitoring/dashboards/ for reproducibility.
 
-- Provide all IaC scripts and configuration files like Terraform scripts, AWS CloudFormation templates, Ansible playbooks, etc.
-- Include documentation explaining the infrastructure setup and how to deploy it.
+Azure Monitor / Log Analytics: The AKS monitoring addon is enabled, wiring cluster logs and platform metrics to Azure. From the Azure Portal you can see node/pod CPU and memory, browse container logs, and query them with Kusto. This gives you a second, centralized view that doesn’t depend on the in-cluster stack.
 
-#### 2. CI/CD Pipeline Configuration:
+Together, these provide both “inside the cluster” visibility (Grafana) and cloud-native fleet observability (Azure Monitor).
 
-- Provide the CI/CD pipeline configuration files like Jenkinsfile, GitHub Actions workflows, etc.
-- Include detailed documentation on how to set up and use the pipeline.
+Security and compliance (practical baseline)
 
-#### 3. Application Containerization and Orchestration:
+Secret handling: No clear-text secrets in the repo. Use GitHub Secrets and/or Kubernetes Secrets to pass DATABASE_URI, REDIS_PASSWORD, etc.
 
-- Provide Dockerfiles and Kubernetes/Docker Swarm configuration files.
-- Include documentation on how to build and deploy the containers.
+Least privilege: CI uses Azure credentials limited to the actions required (authenticate to AKS and apply manifests).
 
-#### 4. Monitoring and Logging Configuration:
+Network exposure: Only the frontend is internet-facing. The API and data services are private (ClusterIP).
 
-- Provide configuration files for monitoring and logging tools, including Prometheus configuration, Grafana dashboards, ELK stack configuration, etc.
-- Include documentation on how to set up and interpret the monitoring and logging data.
+Transport security: For a production extension, add an Ingress + cert-manager to terminate TLS and enable HTTPS end-to-end.
 
-#### 5. Autoscaling Configuration:
+Data/retention: For coursework the data services run inside the cluster; in production, prefer managed services or persistent volumes with encryption at rest. Azure Monitor workspace retention settings govern log/metric retention centrally.
 
-- Provide configuration files or scripts for autoscaling.
-- Include documentation explaining the autoscaling policies, criteria for scaling, how to simulate load to test autoscaling, commands to check the current scaling status, etc. 
+A brief SECURITY.md in the repo can summarize the above for reviewers.
 
-#### 6. Security and Compliance Documentation:
+What to commit for reviewers
 
-- Provide a security overview document detailing the measures implemented.
-- Include compliance checklists and how your solution adheres to them.
+CI/CD – .github/workflows/ci-cd.yml with build, publish, and deploy stages; short notes in this README on required secrets.
 
-### Evaluation Criteria:
+Containerization – Dockerfiles for both frontend and backend.
 
-1. Scalability:
+Kubernetes – Manifests in k8s/k8s/ for Deployments and Services (frontend LoadBalancer; backend/data ClusterIP).
 
-- The solution should handle increasing loads efficiently.
-- Autoscaling should work as expected, without degrading performance.
-- Infrastructure should be able to scale horizontally (adding more instances) or vertically (upgrading existing instances) as needed.
+Monitoring/Logging – Exported Grafana dashboards in monitoring/dashboards/ and this README’s explanation of Prometheus/Grafana and Azure Monitor.
 
-2. Reliability:
+Security – A concise SECURITY.md describing secret management, role scoping, network exposure, TLS approach, and retention.
 
-- The CI/CD pipeline should deploy the application without errors.
-- Monitoring and logging should provide useful insights into the application’s health.
-- The pipeline should be ready for smooth integration of new code and features.
+Running locally (optional note)
 
-3. Security:
+The project also supports local development using Docker (or Docker Compose) with environment variables mirroring the cluster values. This allows quick iteration without changing the production path.
 
-- The solution should follow best security practices.
-- Compliance with relevant standards should be documented.
+Status
 
-4. Documentation:
-
-- The documentation should be clear and comprehensive documentation for each component.
-- Ease of understanding and reproducibility must be considered while documenting all components. 
-
-<!-- ## Additional Resources :clipboard: 
-
-If you would like to study these concepts before the class or would benefit from some remedial studying, please utilize the resources below: -->
-
-<br>
-
-**Good luck!**
+The current deployment targets AKS cluster tony-expensy (resource group tony-expensy-aks). The frontend is reachable at http://20.251.238.124/home and communicates with the backend via the internal service name. Grafana dashboards are set up in-cluster; Azure Monitor is enabled for platform logs and metrics
