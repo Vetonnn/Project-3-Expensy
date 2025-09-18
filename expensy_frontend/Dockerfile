@@ -2,8 +2,13 @@
 FROM node:18-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+# then your existing build line
+RUN npm ci
 COPY . .
+
 RUN npm run build
 
 # ---- Runtime stage ----
